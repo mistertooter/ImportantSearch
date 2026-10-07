@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6 Search Algorithms</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: Arial, sans-serif;
+    color: #111;
+    background: #edf3fc;
+  }
+
+  main {
+    max-width: 1100px;
+    margin: auto;
+    padding: 28px;
+    background: white;
+    border-radius: 20px;
+  }
+
+  h1 { margin: 0 0 16px; font-size: 30px; }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 16px;
+  }
+
+  button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #243b65;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  button:focus-visible {
+    outline: 3px solid #f59e0b;
+    outline-offset: 3px;
+  }
+
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+  }
+
+  .examined-dot { background: #67baff; }
+  .found-dot { background: #58d69b; }
+
+  #lanes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 32px;
+  }
+
+  .lane {
+    padding: 18px 0;
+    border-bottom: 1px solid #d7dfeb;
+  }
+
+  h2 { margin: 0 0 6px; font-size: 21px; }
+
+  .meta {
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: #374151;
+  }
+
+  .track {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 48px;
+  }
+
+  .node {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 42px;
+    padding: 0 7px;
+    border-radius: 50%;
+    background: #e6ebf4;
+    font-weight: bold;
+    transition: transform 0.3s, background 0.3s;
+  }
+
+  .node.visited {
+    background: #67baff;
+    transform: translateY(-4px);
+  }
+
+  .node.found {
+    background: #58d69b;
+    transform: scale(1.12);
+  }
+
+  .description {
+    margin: 12px 0 0;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  footer {
+    margin-top: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 650px) {
+    body { padding: 12px; }
+    main { padding: 18px; }
+    #lanes { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .node { transition: none; }
+  }
+</style>
+</head>
+
+<body>
+<main>
+  <h1>6 Foundational Search Algorithms</h1>
+
+  <div class="controls">
+    <span class="legend">
+      <span class="dot examined-dot"></span> Examined
+    </span>
+    <span class="legend">
+      <span class="dot found-dot"></span> Found
+    </span>
+    <button id="replay" type="button">Replay animation</button>
+  </div>
+
+  <div id="lanes"></div>
+
+  <footer>
+    V = vertices; E = edges.
+    Dijkstra’s complexity assumes a binary heap.
+    Hash-table lookup can degrade to O(n) with frequent collisions.
+    Graph examples use the tree A → B,C; B → D,E; C → F,G.
+  </footer>
+</main>
+
+<script>
+const algorithms = [
+  {
+    name: "Linear search",
+    complexity: "Any list · O(n)",
+    values: ["3", "8", "2", "9", "5", "7"],
+    steps: [0, 1, 2, 3, 4],
+    description: "Target 5: check one item at a time."
+  },
+  {
+    name: "Binary search",
+    complexity: "Sorted list · O(log n)",
+    values: ["1", "3", "5", "7", "9", "11", "13"],
+    steps: [3, 5, 4],
+    description: "Target 9: repeatedly halve the search range."
+  },
+  {
+    name: "Hash-table lookup",
+    complexity: "Hash table · average O(1)",
+    values: ["0", "1", "2", "3", "4", "5", "6"],
+    steps: [3],
+    description:
+      "Key 17: 17 mod 7 = bucket 3. Resolve collisions if needed."
+  },
+  {
+    name: "Breadth-first search (BFS)",
+    complexity: "Unweighted graph · O(V + E)",
+    values: ["A", "B", "C", "D", "E", "F", "G"],
+    steps: [0, 1, 2, 3, 4, 5],
+    description:
+      "Find F: explore level by level. A → B,C → D,E,F,G."
+  },
+  {
+    name: "Depth-first search (DFS)",
+    complexity: "Graph · O(V + E)",
+    values: ["A", "B", "C", "D", "E", "F", "G"],
+    steps: [0, 1, 3, 4, 2, 5],
+    description:
+      "Find F: follow a branch, then backtrack. Visit A,B,D,E,C,F."
+  },
+  {
+    name: "Dijkstra’s search",
+    complexity: "Nonnegative edge costs · O((V + E) log V)",
+    values: ["S:0", "A:2", "B:5", "G:6"],
+    steps: [0, 1, 2, 3],
+    description:
+      "Find G: settle the smallest known distance first. " +
+      "Example edges: S–A=2, S–B=5, A–G=4, B–G=2."
+  }
+];
+
+const lanes = document.getElementById("lanes");
+
+algorithms.forEach((algorithm, index) => {
+  const section = document.createElement("section");
+  section.className = "lane";
+
+  const heading = document.createElement("h2");
+  heading.textContent = `${index + 1}. ${algorithm.name}`;
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.textContent = algorithm.complexity;
+
+  const track = document.createElement("div");
+  track.className = "track";
+  track.setAttribute("role", "img");
+  track.setAttribute(
+    "aria-label",
+    `${algorithm.name}: ${algorithm.description}`
+  );
+
+  algorithm.values.forEach(value => {
+    const node = document.createElement("span");
+    node.className = "node";
+    node.textContent = value;
+    track.appendChild(node);
+  });
+
+  const description = document.createElement("p");
+  description.className = "description";
+  description.textContent = algorithm.description;
+
+  section.append(heading, meta, track, description);
+  lanes.appendChild(section);
+});
+
+let timer;
+
+function runAnimation() {
+  clearInterval(timer);
+
+  document.querySelectorAll(".node").forEach(node => {
+    node.classList.remove("visited", "found");
+  });
+
+  let step = 0;
+  const totalSteps = Math.max(
+    ...algorithms.map(algorithm => algorithm.steps.length)
+  );
+
+  function tick() {
+    algorithms.forEach((algorithm, index) => {
+      if (step >= algorithm.steps.length) return;
+
+      const nodes = lanes.children[index].querySelectorAll(".node");
+      const nodeIndex = algorithm.steps[step];
+      const isFinal = step === algorithm.steps.length - 1;
+
+      nodes[nodeIndex].classList.add(
+        isFinal ? "found" : "visited"
+      );
+    });
+
+    step++;
+
+    if (step >= totalSteps) {
+      clearInterval(timer);
+    }
+  }
+
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    while (step < totalSteps) tick();
+  } else {
+    timer = setInterval(tick, 750);
+  }
+}
+
+document.getElementById("replay")
+  .addEventListener("click", runAnimation);
+
+runAnimation();
+</script>
+</body>
+</html>
